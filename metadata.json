@@ -1,0 +1,6 @@
+{
+  "name": "DreamCraft",
+  "description": "An application that allows users to record, convert, visualize, and interpret their dreams using advanced AI storyboard and cinematic generation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
