@@ -11,7 +11,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.aistudio.dreamcraft.vjqzwx"
+        applicationId = "com.aisudio.dreamcraft.vjqzwx"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -21,6 +21,7 @@ android {
     }
 
     signingConfigs {
+        // إعدادات مفتاح الرفع الخاص بالـ Release
         create("release") {
             val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
             storeFile = file(keystorePath)
@@ -28,36 +29,47 @@ android {
             keyAlias = "upload"
             keyPassword = System.getenv("KEY_PASSWORD")
         }
+
+        // إعداد الـ debugConfig بشكل آمن لا يسبب انهيار البناء على سيرفرات GitHub
+        create("debugConfig") {
+            val keystoreFile = file("${rootDir}/Khaboch/debug.keystore")
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+            } else {
+                // إذا لم يجد الملف (على سيرفر GitHub)، سيستخدم ملف الـ debug الافتراضي المدمج بالنظام
+                storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            }
+        }
     }
 
     buildTypes {
         release {
-            isCrunchPngs = false
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("release")
         }
+        
         debug {
-            // تم إلغاء التوقيع المخصص هنا لحل مشكلة الملف المفقود بنجاح
+            // فحص ذكي: إذا كان البناء يتم على GitHub Actions، استخدم التوقيع الافتراضي الآمن
+            if (System.getenv("GITHUB_ACTIONS") == "true") {
+                signingConfig = signingConfigs.getByName("debug")
+            } else {
+                // إذا كنت تبني محلياً على جهازك، استخدم ملفك الخاص الموجود في مجلد Khaboch
+                signingConfig = signingConfigs.getByName("debugConfig")
+            }
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
     buildFeatures {
         compose = true
-        buildConfig = true
     }
-    testOptions { unitTests { isIncludeAndroidResources = true } }
-}
-
-secrets {
-    propertiesFileName = ".env"
-    defaultPropertiesFileName = ".env.example"
-}
-
-dependencies {
-    implementation(platform(libs.androidx.compose.bom))
 }
