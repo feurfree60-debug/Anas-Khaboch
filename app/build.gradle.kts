@@ -65,8 +65,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    // الطريقة الحديثة والمصححة لإعداد إصدار الـ JVM في كوتلن
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradient.dsl.JvmTarget.JVM_17)
     }
 
     buildFeatures {
