@@ -30,15 +30,23 @@ android {
             keyPassword = System.getenv("KEY_PASSWORD")
         }
 
-        // إعداد الـ debugConfig بشكل آمن لا يسبب انهيار البناء على سيرفرات GitHub
+        // الحل الجذري: نتحقق أولاً؛ إذا كان الملف موجوداً نستخدمه، وإذا لم يكن موجوداً (مثل سيرفر GitHub) نضع أي ملف افتراضي مؤقت حتى لا يتوقف البناء
         create("debugConfig") {
-            val keystoreFile = file("${rootDir}/Khaboch/debug.keystore")
-            if (keystoreFile.exists()) {
-                storeFile = keystoreFile
+            val localKeystore = file("${rootDir}/Khaboch/debug.keystore")
+            if (localKeystore.exists()) {
+                storeFile = localKeystore
             } else {
-                // إذا لم يجد الملف (على سيرفر GitHub)، سيستخدم ملف الـ debug الافتراضي المدمج بالنظام
-                storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+                // إنشاء ملف وهمي في السيرفر لمنع انهيار وتوقف البناء
+                val buildDirKeystore = file("${buildDir}/tmp/debug.keystore")
+                buildDirKeystore.parentFile.mkdirs()
+                if (!buildDirKeystore.exists()) {
+                    buildDirKeystore.createNewFile() 
+                }
+                storeFile = buildDirKeystore
             }
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
     }
 
@@ -50,24 +58,14 @@ android {
         }
         
         debug {
-            // فحص ذكي: إذا كان البناء يتم على GitHub Actions، استخدم التوقيع الافتراضي الآمن
-            if (System.getenv("GITHUB_ACTIONS") == "true") {
-                signingConfig = signingConfigs.getByName("debug")
-            } else {
-                // إذا كنت تبني محلياً على جهازك، استخدم ملفك الخاص الموجود في مجلد Khaboch
-                signingConfig = signingConfigs.getByName("debugConfig")
-            }
+            // نستخدم الـ debugConfig المجهز والآمن دائماً
+            signingConfig = signingConfigs.getByName("debugConfig")
         }
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    // الطريقة الحديثة والمصححة لإعداد إصدار الـ JVM في كوتلن
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradient.dsl.JvmTarget.JVM_17)
     }
 
     buildFeatures {
